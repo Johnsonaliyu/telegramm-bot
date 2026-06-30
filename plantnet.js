@@ -1,20 +1,29 @@
 const axios = require('axios');
 const FormData = require('form-data');
+const sharp = require('sharp');
 
 const PLANTNET_API_KEY = process.env.PLANTNET_API_KEY;
 const PLANTNET_PROJECT = process.env.PLANTNET_PROJECT || 'all';
+
+const SUPPORTED_TYPES = ['image/jpeg', 'image/png'];
 
 /**
  * Identifies a plant from an image buffer using the PlantNet API.
  * Returns an array of up to 3 candidate matches, or null if nothing was matched.
  */
 async function identifyPlant(imageBuffer, mimeType = 'image/jpeg') {
-  const extensions = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
-  const ext = extensions[mimeType] || 'jpg';
+  let finalBuffer = imageBuffer;
+  let finalMime = mimeType;
+
+  if (!SUPPORTED_TYPES.includes(mimeType)) {
+    finalBuffer = await sharp(imageBuffer).jpeg({ quality: 90 }).toBuffer();
+    finalMime = 'image/jpeg';
+  }
+
   const form = new FormData();
   // "organs" tells PlantNet what part of the plant is in the photo.
   // "auto" lets PlantNet figure it out; you can also hint with 'leaf', 'flower', 'fruit', 'bark'.
-  form.append('images', imageBuffer, { filename: `plant.${ext}`, contentType: mimeType });
+  form.append('images', finalBuffer, { filename: 'plant.jpg', contentType: finalMime });
   form.append('organs', 'auto');
 
   const url = `https://my-api.plantnet.org/v2/identify/${PLANTNET_PROJECT}?api-key=${PLANTNET_API_KEY}&include-related-images=false&no-reject=false`;
