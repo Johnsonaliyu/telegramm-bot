@@ -17,10 +17,19 @@ async function identifyPlant(imageBuffer) {
 
   const url = `https://my-api.plantnet.org/v2/identify/${PLANTNET_PROJECT}?api-key=${PLANTNET_API_KEY}&include-related-images=false&no-reject=false`;
 
-  const { data } = await axios.post(url, form, {
-    headers: form.getHeaders(),
-    timeout: 20000,
-  });
+  let data;
+  try {
+    const response = await axios.post(url, form, {
+      headers: form.getHeaders(),
+      timeout: 20000,
+    });
+    data = response.data;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      return null;
+    }
+    throw err;
+  }
 
   if (!data.results || data.results.length === 0) {
     return null;
