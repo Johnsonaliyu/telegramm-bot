@@ -1,0 +1,16 @@
+{
+  "name": "telegram-plant-id-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot that identifies plants from photos using PlantNet, with AI descriptions via Groq/Nvidia",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "grammy": "^1.30.0",
+    "axios": "^1.7.7",
+    "form-data": "^4.0.0",
+    "dotenv": "^16.4.5"
+  }
+}
