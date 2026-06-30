@@ -109,5 +109,11 @@ bot.catch((err) => {
   console.error('Bot error:', err);
 });
 
+// Clear any existing webhook so long polling works uninterrupted
+axios
+  .post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteWebhook`, { drop_pending_updates: false })
+  .then(() => console.log('✅ Webhook cleared.'))
+  .catch((err) => console.warn('Could not clear webhook:', err.message));
+
 bot.start();
 console.log('✅ Telegram plant ID bot is running.');
