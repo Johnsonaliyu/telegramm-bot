@@ -2,7 +2,16 @@ require('dotenv').config();
 
 const { Bot } = require('grammy');
 const axios = require('axios');
-const { identifyPlant, formatHeader, formatAlternates, NOT_FOUND_MESSAGE, escapeMd } = require('./plantnet');
+const {
+  identifyPlant,
+  identifyDisease,
+  formatHeader,
+  formatAlternates,
+  formatDiseaseResults,
+  NOT_FOUND_MESSAGE,
+  DISEASE_NOT_FOUND_MESSAGE,
+  escapeMd,
+} = require('./plantnet');
 const { generateDescription, answerPlantQuestion } = require('./ai');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -19,6 +28,9 @@ if (!PLANTNET_API_KEY) {
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
+// Tracks which chats are waiting for a disease-check photo
+const diseaseModeChats = new Set();
+
 const GREETING_REGEX = /^(hi|hello|hey|howdy|hiya|good\s*(morning|afternoon|evening|day|night)|greetings|what'?s\s*up|sup|yo)\b/i;
 
 function buildGreeting(firstName) {
@@ -30,6 +42,7 @@ function buildGreeting(firstName) {
     `🌱 <b>Common &amp; scientific names</b> — know exactly what plant you're looking at\n` +
     `🏷️ <b>Family &amp; confidence score</b> — with possible alternate matches\n` +
     `📖 <b>Detailed plant profile</b> — habitat, uses, and care tips\n` +
+    `🔬 <b>Disease identification</b> — use /checkdisease then send a photo\n` +
     `❓ <b>Answer plant questions</b> — ask me anything about plants\n\n` +
     `<i>Send me a plant photo or ask a plant question to get started!</i>`
   );
@@ -37,7 +50,9 @@ function buildGreeting(firstName) {
 
 const OFFTOPIC_REPLY =
   "🌿 I'm Flora Scan, a plant identification assistant. I can only help with plant-related questions.\n\n" +
-  'Try asking me about a plant, or send me a photo and I will identify it for you!';
+  'Try asking me about a plant, or send me a photo to identify it!';
+
+// ── Commands ──────────────────────────────────────────────────────────────────
 
 bot.command('start', (ctx) => {
   const name = ctx.from?.first_name || 'there';
@@ -46,42 +61,63 @@ bot.command('start', (ctx) => {
 
 bot.command('help', (ctx) =>
   ctx.reply(
-    'Here are tips for best results:\n\n' +
-      '📸 Sending photos:\n' +
-      '• Get close to a single leaf, flower, or fruit\n' +
+    'Here is what I can do:\n\n' +
+      '📸 Send a plant photo → I will identify it\n' +
+      '🔬 /checkdisease → then send a photo to scan for diseases\n' +
+      '❓ Ask any plant question → I will answer it\n\n' +
+      'Photo tips for best results:\n' +
+      '• Get close to a single leaf, flower, or affected area\n' +
       '• Use good natural light\n' +
-      '• Avoid blurry or shadowed photos\n\n' +
-      '❓ Asking questions:\n' +
-      '• Ask anything about plants — care, uses, diseases, names, and more'
+      '• Avoid blurry or shadowed photos'
   )
 );
 
-// Handle photos (compressed images Telegram sends in chat)
-bot.on('message:photo', async (ctx) => {
-  await handleIncomingImage(ctx, ctx.message.photo.at(-1).file_id);
+bot.command('checkdisease', (ctx) => {
+  diseaseModeChats.add(ctx.chat.id);
+  return ctx.reply(
+    '🔬 <b>Disease Check Mode activated!</b>\n\n' +
+      'Now send me a clear photo of the affected plant part (leaf spots, discolouration, lesions, etc.) and I will analyse it for diseases.\n\n' +
+      '<i>Mode auto-clears after you send the photo.</i>',
+    { parse_mode: 'HTML' }
+  );
 });
 
-// Handle images sent as uncompressed "documents" (image/* mime types)
+// ── Photo handlers ─────────────────────────────────────────────────────────────
+
+bot.on('message:photo', async (ctx) => {
+  const fileId = ctx.message.photo.at(-1).file_id;
+  if (diseaseModeChats.has(ctx.chat.id)) {
+    diseaseModeChats.delete(ctx.chat.id);
+    await handleDiseaseImage(ctx, fileId);
+  } else {
+    await handleIncomingImage(ctx, fileId);
+  }
+});
+
 bot.on('message:document', async (ctx) => {
   const doc = ctx.message.document;
   if (doc.mime_type && doc.mime_type.startsWith('image/')) {
-    await handleIncomingImage(ctx, doc.file_id, doc.mime_type);
+    if (diseaseModeChats.has(ctx.chat.id)) {
+      diseaseModeChats.delete(ctx.chat.id);
+      await handleDiseaseImage(ctx, doc.file_id, doc.mime_type);
+    } else {
+      await handleIncomingImage(ctx, doc.file_id, doc.mime_type);
+    }
   } else {
     await ctx.reply('Please send an image file of a plant.');
   }
 });
 
-// Handle all text messages
+// ── Text handler ───────────────────────────────────────────────────────────────
+
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text.trim();
   const firstName = ctx.from?.first_name || 'there';
 
-  // Greetings
   if (GREETING_REGEX.test(text)) {
     return ctx.reply(buildGreeting(firstName), { parse_mode: 'HTML' });
   }
 
-  // Plant questions — route to AI
   await ctx.replyWithChatAction('typing');
   try {
     const answer = await answerPlantQuestion(text);
@@ -102,6 +138,8 @@ bot.on('message:text', async (ctx) => {
     return ctx.reply('⚠️ Something went wrong. Please try again.');
   }
 });
+
+// ── Image processing functions ─────────────────────────────────────────────────
 
 async function handleIncomingImage(ctx, fileId, mimeType = 'image/jpeg') {
   const chatId = ctx.chat.id;
@@ -152,6 +190,38 @@ async function handleIncomingImage(ctx, fileId, mimeType = 'image/jpeg') {
     await ctx.reply('⚠️ Something went wrong identifying that plant. Please try again with a clearer photo.');
   }
 }
+
+async function handleDiseaseImage(ctx, fileId, mimeType = 'image/jpeg') {
+  const chatId = ctx.chat.id;
+  try {
+    await ctx.replyWithChatAction('typing');
+    const statusMsg = await ctx.reply('🔬 Analysing for diseases, one moment...');
+
+    const file = await ctx.api.getFile(fileId);
+    const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${file.file_path}`;
+    const { data: imageBuffer } = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+
+    const results = await identifyDisease(imageBuffer, mimeType);
+
+    if (!results) {
+      await ctx.api
+        .editMessageText(chatId, statusMsg.message_id, DISEASE_NOT_FOUND_MESSAGE)
+        .catch(() => ctx.reply(DISEASE_NOT_FOUND_MESSAGE));
+      return;
+    }
+
+    await ctx.api
+      .editMessageText(chatId, statusMsg.message_id, formatDiseaseResults(results), { parse_mode: 'HTML' })
+      .catch(async () => {
+        await ctx.reply(formatDiseaseResults(results), { parse_mode: 'HTML' });
+      });
+  } catch (err) {
+    console.error('Error handling disease image:', err.response?.data || err.message);
+    await ctx.reply('⚠️ Something went wrong during disease analysis. Please try again with a clearer photo of the affected area.');
+  }
+}
+
+// ── Bot error handler & startup ────────────────────────────────────────────────
 
 bot.catch((err) => {
   console.error('Bot error:', err);
