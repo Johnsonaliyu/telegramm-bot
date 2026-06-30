@@ -23,15 +23,15 @@ const GREETING_REGEX = /^(hi|hello|hey|howdy|hiya|good\s*(morning|afternoon|even
 
 function buildGreeting(firstName) {
   return (
-    `🌿 Good day, ${firstName}!\n\n` +
-    `I'm *Flora Scan*, built by *Aliu Johnson Temitope*, a fellow of the *3MTT Airtel NextGen Program* with fellow ID *FE/23/24184818*.\n\n` +
-    `Here's what I can do for you:\n\n` +
-    `📸 *Identify plants from photos* — send any clear plant image\n` +
-    `🌱 *Common & scientific names* — know exactly what plant you're looking at\n` +
-    `🏷️ *Family & confidence score* — with possible alternate matches\n` +
-    `📖 *Detailed plant profile* — habitat, uses, and care tips\n` +
-    `❓ *Answer plant questions* — ask me anything about plants\n\n` +
-    `_Send me a plant photo or ask a plant question to get started\\!_`
+    `🌿 Good day, <b>${firstName}</b>!\n\n` +
+    `I'm <b>Flora Scan</b>, built by <b>Aliu Johnson Temitope</b>, a fellow of the <b>3MTT Airtel NextGen Program</b> with fellow ID <b>FE/23/24184818</b>.\n\n` +
+    `<b>Here's what I can do for you:</b>\n\n` +
+    `📸 <b>Identify plants from photos</b> — send any clear plant image\n` +
+    `🌱 <b>Common &amp; scientific names</b> — know exactly what plant you're looking at\n` +
+    `🏷️ <b>Family &amp; confidence score</b> — with possible alternate matches\n` +
+    `📖 <b>Detailed plant profile</b> — habitat, uses, and care tips\n` +
+    `❓ <b>Answer plant questions</b> — ask me anything about plants\n\n` +
+    `<i>Send me a plant photo or ask a plant question to get started!</i>`
   );
 }
 
@@ -41,19 +41,18 @@ const OFFTOPIC_REPLY =
 
 bot.command('start', (ctx) => {
   const name = ctx.from?.first_name || 'there';
-  return ctx.reply(buildGreeting(name), { parse_mode: 'MarkdownV2' });
+  return ctx.reply(buildGreeting(name), { parse_mode: 'HTML' });
 });
 
 bot.command('help', (ctx) =>
   ctx.reply(
     'Here are tips for best results:\n\n' +
-      '📸 *Sending photos:*\n' +
+      '📸 Sending photos:\n' +
       '• Get close to a single leaf, flower, or fruit\n' +
       '• Use good natural light\n' +
       '• Avoid blurry or shadowed photos\n\n' +
-      '❓ *Asking questions:*\n' +
-      '• Ask anything about plants — care, uses, diseases, names, and more',
-    { parse_mode: 'MarkdownV2' }
+      '❓ Asking questions:\n' +
+      '• Ask anything about plants — care, uses, diseases, names, and more'
   )
 );
 
@@ -79,7 +78,7 @@ bot.on('message:text', async (ctx) => {
 
   // Greetings
   if (GREETING_REGEX.test(text)) {
-    return ctx.reply(buildGreeting(firstName), { parse_mode: 'MarkdownV2' });
+    return ctx.reply(buildGreeting(firstName), { parse_mode: 'HTML' });
   }
 
   // Plant questions — route to AI
