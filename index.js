@@ -1,9 +1,9 @@
 require('dotenv').config();
 
-const { Bot, InputFile } = require('grammy');
+const { Bot } = require('grammy');
 const axios = require('axios');
 const { identifyPlant, formatHeader, formatAlternates, NOT_FOUND_MESSAGE, escapeMd } = require('./plantnet');
-const { generateDescription } = require('./ai');
+const { generateDescription, answerPlantQuestion } = require('./ai');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const PLANTNET_API_KEY = process.env.PLANTNET_API_KEY;
@@ -19,18 +19,41 @@ if (!PLANTNET_API_KEY) {
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN);
 
-bot.command('start', (ctx) =>
-  ctx.reply(
-    '🌱 Hi! Send me a clear photo of a plant (leaf, flower, or fruit) and I will identify it and tell you about it.'
-  )
-);
+const GREETING_REGEX = /^(hi|hello|hey|howdy|hiya|good\s*(morning|afternoon|evening|day|night)|greetings|what'?s\s*up|sup|yo)\b/i;
+
+function buildGreeting(firstName) {
+  return (
+    `🌿 Good day, ${firstName}!\n\n` +
+    `I'm *Flora Scan*, built by *Aliu Johnson Temitope*, a fellow of the *3MTT Airtel NextGen Program* with fellow ID *FE/23/24184818*.\n\n` +
+    `Here's what I can do for you:\n\n` +
+    `📸 *Identify plants from photos* — send any clear plant image\n` +
+    `🌱 *Common & scientific names* — know exactly what plant you're looking at\n` +
+    `🏷️ *Family & confidence score* — with possible alternate matches\n` +
+    `📖 *Detailed plant profile* — habitat, uses, and care tips\n` +
+    `❓ *Answer plant questions* — ask me anything about plants\n\n` +
+    `_Send me a plant photo or ask a plant question to get started\\!_`
+  );
+}
+
+const OFFTOPIC_REPLY =
+  "🌿 I'm Flora Scan, a plant identification assistant. I can only help with plant-related questions.\n\n" +
+  'Try asking me about a plant, or send me a photo and I will identify it for you!';
+
+bot.command('start', (ctx) => {
+  const name = ctx.from?.first_name || 'there';
+  return ctx.reply(buildGreeting(name), { parse_mode: 'MarkdownV2' });
+});
 
 bot.command('help', (ctx) =>
   ctx.reply(
-    'Just send a photo of a plant. For best results:\n' +
-      '• Get close to a single leaf or flower\n' +
+    'Here are tips for best results:\n\n' +
+      '📸 *Sending photos:*\n' +
+      '• Get close to a single leaf, flower, or fruit\n' +
       '• Use good natural light\n' +
-      '• Avoid blurry photos'
+      '• Avoid blurry or shadowed photos\n\n' +
+      '❓ *Asking questions:*\n' +
+      '• Ask anything about plants — care, uses, diseases, names, and more',
+    { parse_mode: 'MarkdownV2' }
   )
 );
 
@@ -49,10 +72,37 @@ bot.on('message:document', async (ctx) => {
   }
 });
 
-// Fallback for plain text
-bot.on('message:text', (ctx) =>
-  ctx.reply('🌱 Send me a plant photo and I will identify it for you!')
-);
+// Handle all text messages
+bot.on('message:text', async (ctx) => {
+  const text = ctx.message.text.trim();
+  const firstName = ctx.from?.first_name || 'there';
+
+  // Greetings
+  if (GREETING_REGEX.test(text)) {
+    return ctx.reply(buildGreeting(firstName), { parse_mode: 'MarkdownV2' });
+  }
+
+  // Plant questions — route to AI
+  await ctx.replyWithChatAction('typing');
+  try {
+    const answer = await answerPlantQuestion(text);
+
+    if (!answer) {
+      return ctx.reply(
+        "🌿 I couldn't find an answer right now. Try rephrasing your plant question, or send me a photo to identify a plant!"
+      );
+    }
+
+    if (answer.offTopic) {
+      return ctx.reply(OFFTOPIC_REPLY);
+    }
+
+    return ctx.reply(`🌿 ${answer.text}`);
+  } catch (err) {
+    console.error('Error answering question:', err.message);
+    return ctx.reply('⚠️ Something went wrong. Please try again.');
+  }
+});
 
 async function handleIncomingImage(ctx, fileId, mimeType = 'image/jpeg') {
   const chatId = ctx.chat.id;
@@ -78,7 +128,6 @@ async function handleIncomingImage(ctx, fileId, mimeType = 'image/jpeg') {
         parse_mode: 'MarkdownV2',
       })
       .catch(async () => {
-        // Fall back to plain text if MarkdownV2 parsing ever fails on odd characters
         await ctx.reply(formatHeader(top) + formatAlternates(matches));
       });
 
