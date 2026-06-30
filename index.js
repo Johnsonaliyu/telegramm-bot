@@ -43,7 +43,7 @@ bot.on('message:photo', async (ctx) => {
 bot.on('message:document', async (ctx) => {
   const doc = ctx.message.document;
   if (doc.mime_type && doc.mime_type.startsWith('image/')) {
-    await handleIncomingImage(ctx, doc.file_id);
+    await handleIncomingImage(ctx, doc.file_id, doc.mime_type);
   } else {
     await ctx.reply('Please send an image file of a plant.');
   }
@@ -54,7 +54,7 @@ bot.on('message:text', (ctx) =>
   ctx.reply('🌱 Send me a plant photo and I will identify it for you!')
 );
 
-async function handleIncomingImage(ctx, fileId) {
+async function handleIncomingImage(ctx, fileId, mimeType = 'image/jpeg') {
   const chatId = ctx.chat.id;
   try {
     await ctx.replyWithChatAction('typing');
@@ -64,7 +64,7 @@ async function handleIncomingImage(ctx, fileId) {
     const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${file.file_path}`;
     const { data: imageBuffer } = await axios.get(fileUrl, { responseType: 'arraybuffer' });
 
-    const matches = await identifyPlant(imageBuffer);
+    const matches = await identifyPlant(imageBuffer, mimeType);
 
     if (!matches) {
       await ctx.api.editMessageText(chatId, statusMsg.message_id, NOT_FOUND_MESSAGE).catch(() => {});
