@@ -135,20 +135,22 @@ function escapeMd(text = '') {
 }
 
 const NOT_FOUND_MESSAGE =
-  "I couldn't confidently identify this plant. 🌱\n\n" +
-  'Tips for a better shot:\n' +
-  '• Get close to a single leaf or flower\n' +
-  '• Use good natural light\n' +
-  '• Avoid blurry or shadowed photos\n\n' +
+  "I was not able to confidently identify this plant. 🌱\n\n" +
+  'Here are some tips to get a better result:\n' +
+  '• Take a close-up shot of a single leaf, flower, or fruit\n' +
+  '• Shoot in good natural daylight — avoid shadows\n' +
+  '• Make sure the photo is steady and in focus\n\n' +
+  'If you are in Nigeria, try photographing a well-lit leaf from a common crop like cassava, yam, maize, or tomato — those work very well.\n\n' +
   'Try sending another photo!';
 
 const DISEASE_NOT_FOUND_MESSAGE =
-  "🔬 I couldn't detect a known disease in this photo.\n\n" +
-  'Tips for better disease detection:\n' +
-  '• Focus on the affected area (leaf spots, discolouration, lesions)\n' +
-  '• Use good natural light\n' +
-  '• Avoid blurry photos\n\n' +
-  'Note: Disease identification covers a limited range of species and conditions.';
+  "🔬 I was not able to detect a known disease in this photo.\n\n" +
+  'Tips for a clearer disease scan:\n' +
+  '• Focus on the affected area — leaf spots, yellowing, wilting, or lesions\n' +
+  '• Use good natural daylight\n' +
+  '• Avoid blurry or distant shots\n\n' +
+  'Note: The disease database currently covers a limited range of plant species and conditions. ' +
+  'For serious crop health concerns, please contact your nearest ADP (Agricultural Development Programme) office or a local extension worker.';
 
 module.exports = {
   identifyPlant,

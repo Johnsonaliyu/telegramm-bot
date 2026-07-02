@@ -35,22 +35,25 @@ const GREETING_REGEX = /^(hi|hello|hey|howdy|hiya|good\s*(morning|afternoon|even
 
 function buildGreeting(firstName) {
   return (
-    `🌿 Good day, <b>${firstName}</b>!\n\n` +
-    `I'm <b>Flora Scan</b>, built by <b>Aliu Johnson Temitope</b>, a fellow of the <b>3MTT Airtel NextGen Program</b> with fellow ID <b>FE/23/24184818</b>.\n\n` +
-    `<b>Here's what I can do for you:</b>\n\n` +
-    `📸 <b>Identify plants from photos</b> — send any clear plant image\n` +
-    `🌱 <b>Common &amp; scientific names</b> — know exactly what plant you're looking at\n` +
-    `🏷️ <b>Family &amp; confidence score</b> — with possible alternate matches\n` +
-    `📖 <b>Detailed plant profile</b> — habitat, uses, and care tips\n` +
-    `🔬 <b>Disease identification</b> — use /checkdisease then send a photo\n` +
-    `❓ <b>Answer plant questions</b> — ask me anything about plants\n\n` +
-    `<i>Send me a plant photo or ask a plant question to get started!</i>`
+    `🌿 Good day, <b>${firstName}</b>! You are welcome!\n\n` +
+    `I am <b>Flora Scan</b>, your smart plant assistant built by <b>Aliu Johnson Temitope</b>, a fellow of the <b>3MTT Airtel NextGen Program</b> with fellow ID <b>FE/23/24184818</b>.\n\n` +
+    `Whether you are a farmer in the field, a student, or just curious about the plants around you — I am here to help you make better decisions about your crops and plants.\n\n` +
+    `<b>Here is what I can do for you:</b>\n\n` +
+    `📸 <b>Identify any plant</b> — cassava, yam, maize, tomato, and many more\n` +
+    `🌱 <b>Common &amp; scientific names</b> — including local Nigerian names where available\n` +
+    `🏷️ <b>Plant family &amp; confidence score</b> — with other possible matches\n` +
+    `📖 <b>Detailed plant profile</b> — habitat, uses, and growing tips for Nigerian conditions\n` +
+    `🔬 <b>Disease identification</b> — use /checkdisease, then send a photo of the affected plant\n` +
+    `❓ <b>Ask any plant question</b> — care, diseases, best practices, local uses, and more\n\n` +
+    `<i>Just send me a photo of any plant or type your question to get started!</i>`
   );
 }
 
 const OFFTOPIC_REPLY =
-  "🌿 I'm Flora Scan, a plant identification assistant. I can only help with plant-related questions.\n\n" +
-  'Try asking me about a plant, or send me a photo to identify it!';
+  '🌿 I am Flora Scan, your plant assistant for Nigerian farmers and gardeners. ' +
+  'I can only help with plant-related topics.\n\n' +
+  'You can ask me about crops like cassava, yam, maize, tomato, or any plant around you — ' +
+  'or send me a photo and I will identify it for you!';
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -61,14 +64,15 @@ bot.command('start', (ctx) => {
 
 bot.command('help', (ctx) =>
   ctx.reply(
-    'Here is what I can do:\n\n' +
-      '📸 Send a plant photo → I will identify it\n' +
-      '🔬 /checkdisease → then send a photo to scan for diseases\n' +
-      '❓ Ask any plant question → I will answer it\n\n' +
-      'Photo tips for best results:\n' +
-      '• Get close to a single leaf, flower, or affected area\n' +
-      '• Use good natural light\n' +
-      '• Avoid blurry or shadowed photos'
+    'Here is what Flora Scan can do for you:\n\n' +
+      '📸 Send a plant photo → I will identify it and tell you all about it\n' +
+      '🔬 /checkdisease → send a photo of a sick plant to detect diseases\n' +
+      '❓ Ask any plant question → care, uses, local names, best practices\n\n' +
+      'Tips for the best results:\n' +
+      '• Take a clear, close-up photo of one leaf, flower, fruit, or the affected area\n' +
+      '• Shoot in good daylight — avoid shadows\n' +
+      '• Keep the photo steady and in focus\n\n' +
+      'I am built for Nigerian farmers and gardeners, so feel free to ask about cassava, yam, maize, tomato, pepper, and any crop or plant around you!'
   )
 );
 
@@ -76,8 +80,13 @@ bot.command('checkdisease', (ctx) => {
   diseaseModeChats.add(ctx.chat.id);
   return ctx.reply(
     '🔬 <b>Disease Check Mode activated!</b>\n\n' +
-      'Now send me a clear photo of the affected plant part (leaf spots, discolouration, lesions, etc.) and I will analyse it for diseases.\n\n' +
-      '<i>Mode auto-clears after you send the photo.</i>',
+      'Now send me a clear photo of the affected part of your plant — leaf spots, yellowing, wilting, lesions, or any sign that something is wrong.\n\n' +
+      'I will identify the likely disease and give you:\n' +
+      '✅ Possible causes\n' +
+      '✅ Treatment options\n' +
+      '✅ Preventive measures\n' +
+      '✅ Best farming practices\n\n' +
+      '<i>Mode clears automatically after you send the photo.</i>',
     { parse_mode: 'HTML' }
   );
 });
