@@ -12,7 +12,7 @@ const {
   DISEASE_NOT_FOUND_MESSAGE,
   escapeMd,
 } = require('./plantnet');
-const { generateDescription, answerPlantQuestion } = require('./ai');
+const { generateDescription, answerPlantQuestion, generateDiseaseReport } = require('./ai');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const PLANTNET_API_KEY = process.env.PLANTNET_API_KEY;
@@ -210,11 +210,32 @@ async function handleDiseaseImage(ctx, fileId, mimeType = 'image/jpeg') {
       return;
     }
 
+    // Send the detection summary
     await ctx.api
       .editMessageText(chatId, statusMsg.message_id, formatDiseaseResults(results), { parse_mode: 'HTML' })
       .catch(async () => {
         await ctx.reply(formatDiseaseResults(results), { parse_mode: 'HTML' });
       });
+
+    // Generate and send the detailed AI report for the top match
+    await ctx.replyWithChatAction('typing');
+    const top = results[0];
+    const report = await generateDiseaseReport(top.eppoCode, top.description);
+
+    if (report) {
+      const sections = report.text
+        .replace(/1\. About the Disease:/i, '🌿 <b>1. About the Disease:</b>')
+        .replace(/2\. Possible Causes:/i, '⚠️ <b>2. Possible Causes:</b>')
+        .replace(/3\. Treatment Options:/i, '💊 <b>3. Treatment Options:</b>')
+        .replace(/4\. Preventive Measures:/i, '🛡️ <b>4. Preventive Measures:</b>')
+        .replace(/5\. Best Farming Practices:/i, '🌾 <b>5. Best Farming Practices:</b>');
+
+      await ctx.reply(`📋 <b>Disease Report</b>\n\n${sections}`, { parse_mode: 'HTML' });
+    } else {
+      await ctx.reply(
+        '📋 Detailed disease report unavailable right now. The identification above should help guide your next steps.'
+      );
+    }
   } catch (err) {
     console.error('Error handling disease image:', err.response?.data || err.message);
     await ctx.reply('⚠️ Something went wrong during disease analysis. Please try again with a clearer photo of the affected area.');

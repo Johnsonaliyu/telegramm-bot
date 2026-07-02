@@ -131,4 +131,36 @@ async function answerPlantQuestion(question) {
   return { text: result, offTopic: false };
 }
 
-module.exports = { generateDescription, answerPlantQuestion };
+const DISEASE_REPORT_SYSTEM_PROMPT = `You are an expert plant pathologist and agronomist providing practical guidance to farmers and gardeners.
+Given a plant disease name or EPPO code, write a clear, structured report covering exactly these five sections in order:
+
+1. About the Disease — 2-3 sentences explaining what it is and what plants it affects.
+2. Possible Causes — list 2-4 main causes or conditions that trigger it.
+3. Treatment Options — list 3-5 practical treatment steps (chemical, biological, or cultural).
+4. Preventive Measures — list 3-4 steps to prevent the disease from occurring.
+5. Best Farming Practices — 2-3 general good-practice tips relevant to this disease.
+
+Format rules:
+- Use plain text only. No markdown symbols (* # _ etc.).
+- Separate each section with a blank line.
+- Start each section heading with its number and name exactly as listed above, followed by a colon.
+- Keep the entire response under 350 words.
+- Be specific and actionable. If you are unsure of a fact, omit it.`;
+
+/**
+ * Generates a comprehensive disease report including causes, treatment, prevention, and farming practices.
+ * Returns { text } or null if AI is unavailable.
+ */
+async function generateDiseaseReport(eppoCode, description) {
+  const prompt = `Plant disease detected:\nEPPO Code: ${eppoCode}\nDescription: ${description}\n\nWrite the full disease report now.`;
+
+  const messages = [
+    { role: 'system', content: DISEASE_REPORT_SYSTEM_PROMPT },
+    { role: 'user', content: prompt },
+  ];
+
+  const result = await callAI(messages, 600);
+  return result ? { text: result } : null;
+}
+
+module.exports = { generateDescription, answerPlantQuestion, generateDiseaseReport };
