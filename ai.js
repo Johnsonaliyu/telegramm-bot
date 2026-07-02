@@ -116,13 +116,15 @@ async function generateDescription(plantInfo) {
 
 /**
  * Answers a plant-related question from the user.
+ * history is an array of {role, content} messages (previous exchanges).
  * Returns { text, offTopic: false } for plant questions,
  * { offTopic: true } for unrelated questions,
  * or null if AI is unavailable.
  */
-async function answerPlantQuestion(question) {
+async function answerPlantQuestion(question, history = []) {
   const messages = [
     { role: 'system', content: PLANT_QA_SYSTEM_PROMPT },
+    ...history,
     { role: 'user', content: question },
   ];
 

@@ -31,6 +31,21 @@ const bot = new Bot(TELEGRAM_BOT_TOKEN);
 // Tracks which chats are waiting for a disease-check photo
 const diseaseModeChats = new Set();
 
+// Per-chat conversation history for contextual Q&A
+const MAX_HISTORY = 10; // max messages kept per chat (5 exchanges)
+const chatHistories = new Map();
+
+function getHistory(chatId) {
+  return chatHistories.get(chatId) || [];
+}
+
+function addToHistory(chatId, role, content) {
+  const history = getHistory(chatId);
+  history.push({ role, content });
+  if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
+  chatHistories.set(chatId, history);
+}
+
 const GREETING_REGEX = /^(hi|hello|hey|howdy|hiya|good\s*(morning|afternoon|evening|day|night)|greetings|what'?s\s*up|sup|yo)\b/i;
 
 function buildGreeting(firstName) {
@@ -121,6 +136,7 @@ bot.on('message:document', async (ctx) => {
 
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text.trim();
+  const chatId = ctx.chat.id;
   const firstName = ctx.from?.first_name || 'there';
 
   if (GREETING_REGEX.test(text)) {
@@ -129,7 +145,8 @@ bot.on('message:text', async (ctx) => {
 
   await ctx.replyWithChatAction('typing');
   try {
-    const answer = await answerPlantQuestion(text);
+    const history = getHistory(chatId);
+    const answer = await answerPlantQuestion(text, history);
 
     if (!answer) {
       return ctx.reply(
@@ -140,6 +157,10 @@ bot.on('message:text', async (ctx) => {
     if (answer.offTopic) {
       return ctx.reply(OFFTOPIC_REPLY);
     }
+
+    // Save exchange to history
+    addToHistory(chatId, 'user', text);
+    addToHistory(chatId, 'assistant', answer.text);
 
     return ctx.reply(`🌿 ${answer.text}`);
   } catch (err) {
@@ -194,6 +215,14 @@ async function handleIncomingImage(ctx, fileId, mimeType = 'image/jpeg') {
         "Couldn't fetch extra details right now, but the identification above is solid. Try again later for the full description."
       );
     }
+
+    // Save identification to history so follow-up questions work
+    const commonName = top.commonNames[0] || top.scientificName;
+    addToHistory(
+      chatId,
+      'assistant',
+      `I identified a plant from the user's photo. It is ${commonName} (scientific name: ${top.scientificName}${top.family ? ', family: ' + top.family : ''}), with ${top.score}% confidence.${description ? ' About this plant: ' + description.text : ''}`
+    );
   } catch (err) {
     console.error('Error handling image:', err.response?.data || err.message);
     await ctx.reply('⚠️ Something went wrong identifying that plant. Please try again with a clearer photo.');
