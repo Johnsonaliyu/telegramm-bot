@@ -17,6 +17,16 @@ const { generateDescription, answerPlantQuestion, generateDiseaseReport } = requ
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const PLANTNET_API_KEY = process.env.PLANTNET_API_KEY;
 
+// Max image download size: 15 MB
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+
+function escapeHtml(text = '') {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 if (!TELEGRAM_BOT_TOKEN) {
   console.error('Missing TELEGRAM_BOT_TOKEN in .env — get one from @BotFather on Telegram.');
   process.exit(1);
@@ -33,6 +43,7 @@ const diseaseModeChats = new Set();
 
 // Per-chat conversation history for contextual Q&A
 const MAX_HISTORY = 10; // max messages kept per chat (5 exchanges)
+const MAX_CHATS = 500;  // evict oldest chat when map exceeds this size
 const chatHistories = new Map();
 
 function getHistory(chatId) {
@@ -43,6 +54,10 @@ function addToHistory(chatId, role, content) {
   const history = getHistory(chatId);
   history.push({ role, content });
   if (history.length > MAX_HISTORY) history.splice(0, history.length - MAX_HISTORY);
+  // Evict the oldest chat when the map gets too large
+  if (!chatHistories.has(chatId) && chatHistories.size >= MAX_CHATS) {
+    chatHistories.delete(chatHistories.keys().next().value);
+  }
   chatHistories.set(chatId, history);
 }
 
@@ -50,7 +65,7 @@ const GREETING_REGEX = /^(hi|hello|hey|howdy|hiya|good\s*(morning|afternoon|even
 
 function buildGreeting(firstName) {
   return (
-    `🌿 Good day, <b>${firstName}</b>! You are welcome!\n\n` +
+    `🌿 Good day, <b>${escapeHtml(firstName)}</b>! You are welcome!\n\n` +
     `I am <b>Flora Scan</b>, your smart plant assistant built by <b>Aliu Johnson Temitope</b>, a fellow of the <b>3MTT Airtel NextGen Program</b> with fellow ID <b>FE/23/24184818</b>.\n\n` +
     `Whether you are a farmer in the field, a student, or just curious about the plants around you — I am here to help you make better decisions about your crops and plants.\n\n` +
     `<b>Here is what I can do for you:</b>\n\n` +
@@ -178,8 +193,12 @@ async function handleIncomingImage(ctx, fileId, mimeType = 'image/jpeg') {
     const statusMsg = await ctx.reply('🔍 Identifying your plant, one moment...');
 
     const file = await ctx.api.getFile(fileId);
+    if (file.file_size && file.file_size > MAX_IMAGE_BYTES) {
+      await ctx.api.editMessageText(chatId, statusMsg.message_id, '⚠️ Image is too large (max 15 MB). Please send a smaller photo.').catch(() => {});
+      return;
+    }
     const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${file.file_path}`;
-    const { data: imageBuffer } = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+    const { data: imageBuffer } = await axios.get(fileUrl, { responseType: 'arraybuffer', timeout: 30000, maxContentLength: MAX_IMAGE_BYTES });
 
     const matches = await identifyPlant(imageBuffer, mimeType);
 
@@ -236,8 +255,12 @@ async function handleDiseaseImage(ctx, fileId, mimeType = 'image/jpeg') {
     const statusMsg = await ctx.reply('🔬 Analysing for diseases, one moment...');
 
     const file = await ctx.api.getFile(fileId);
+    if (file.file_size && file.file_size > MAX_IMAGE_BYTES) {
+      await ctx.api.editMessageText(chatId, statusMsg.message_id, '⚠️ Image is too large (max 15 MB). Please send a smaller photo.').catch(() => {});
+      return;
+    }
     const fileUrl = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${file.file_path}`;
-    const { data: imageBuffer } = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+    const { data: imageBuffer } = await axios.get(fileUrl, { responseType: 'arraybuffer', timeout: 30000, maxContentLength: MAX_IMAGE_BYTES });
 
     const results = await identifyDisease(imageBuffer, mimeType);
 
@@ -261,7 +284,8 @@ async function handleDiseaseImage(ctx, fileId, mimeType = 'image/jpeg') {
     const report = await generateDiseaseReport(top.eppoCode, top.description);
 
     if (report) {
-      const sections = report.text
+      // Escape HTML first, then inject the safe bold section headings
+      const sections = escapeHtml(report.text)
         .replace(/1\. About the Disease:/i, '🌿 <b>1. About the Disease:</b>')
         .replace(/2\. Possible Causes:/i, '⚠️ <b>2. Possible Causes:</b>')
         .replace(/3\. Treatment Options:/i, '💊 <b>3. Treatment Options:</b>')

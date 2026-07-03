@@ -111,17 +111,24 @@ function formatAlternates(matches) {
   return reply;
 }
 
+function escapeHtml(text = '') {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function formatDiseaseResults(results) {
   const top = results[0];
   let reply = `🔬 <b>Disease analysis complete!</b>\n\n`;
-  reply += `<b>Most likely issue:</b> ${top.description}\n`;
-  reply += `<b>Confidence:</b> ${top.score}%\n`;
-  reply += `<b>EPPO Code:</b> <code>${top.eppoCode}</code>\n`;
+  reply += `<b>Most likely issue:</b> ${escapeHtml(top.description)}\n`;
+  reply += `<b>Confidence:</b> ${escapeHtml(String(top.score))}%\n`;
+  reply += `<b>EPPO Code:</b> <code>${escapeHtml(top.eppoCode)}</code>\n`;
 
   if (results.length > 1) {
     reply += `\n<b>Other possibilities:</b>\n`;
     results.slice(1).forEach((r) => {
-      reply += `• ${r.description} (${r.score}%)\n`;
+      reply += `• ${escapeHtml(r.description)} (${escapeHtml(String(r.score))}%)\n`;
     });
   }
 
