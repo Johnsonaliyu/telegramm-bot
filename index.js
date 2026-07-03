@@ -67,23 +67,25 @@ function buildGreeting(firstName) {
   return (
     `🌿 Good day, <b>${escapeHtml(firstName)}</b>! You are welcome!\n\n` +
     `I am <b>Flora Scan</b>, your smart plant assistant built by <b>Aliu Johnson Temitope</b>, a fellow of the <b>3MTT Airtel NextGen Program</b> with fellow ID <b>FE/23/24184818</b>.\n\n` +
-    `Whether you are a farmer in the field, a student, or just curious about the plants around you — I am here to help you make better decisions about your crops and plants.\n\n` +
+    `Whether you are a farmer in the field, a student, or just curious about the world of plants and soil — I am here to help you make better decisions about your crops and land.\n\n` +
     `<b>Here is what I can do for you:</b>\n\n` +
     `📸 <b>Identify any plant</b> — cassava, yam, maize, tomato, and many more\n` +
     `🌱 <b>Common &amp; scientific names</b> — including local Nigerian names where available\n` +
     `🏷️ <b>Plant family &amp; confidence score</b> — with other possible matches\n` +
     `📖 <b>Detailed plant profile</b> — habitat, uses, and growing tips for Nigerian conditions\n` +
     `🔬 <b>Disease identification</b> — use /checkdisease, then send a photo of the affected plant\n` +
-    `❓ <b>Ask any plant question</b> — care, diseases, best practices, local uses, and more\n\n` +
-    `<i>Just send me a photo of any plant or type your question to get started!</i>`
+    `🌾 <b>Agronomy &amp; crop management</b> — fertilisation, irrigation, pest control, crop rotation, yield tips\n` +
+    `🍅 <b>Horticulture</b> — fruit, vegetable &amp; ornamental crops, pruning, grafting, post-harvest handling\n` +
+    `🪱 <b>Soil science &amp; management</b> — soil types, pH, nutrients, composting, erosion control, land prep\n` +
+    `❓ <b>Ask any question</b> — just type it and I will answer\n\n` +
+    `<i>Send me a photo of any plant, or type your question to get started!</i>`
   );
 }
 
 const OFFTOPIC_REPLY =
-  '🌿 I am Flora Scan, your plant assistant for Nigerian farmers and gardeners. ' +
-  'I can only help with plant-related topics.\n\n' +
-  'You can ask me about crops like cassava, yam, maize, tomato, or any plant around you — ' +
-  'or send me a photo and I will identify it for you!';
+  '🌿 I am Flora Scan, your agricultural assistant for Nigerian farmers, students, and gardeners. ' +
+  'I can help with plants, agronomy, horticulture, and soil science — but not with topics outside those areas.\n\n' +
+  'Try asking about crop care, soil health, fertilisers, pest control, or send me a plant photo to identify it!';
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -97,12 +99,15 @@ bot.command('help', (ctx) =>
     'Here is what Flora Scan can do for you:\n\n' +
       '📸 Send a plant photo → I will identify it and tell you all about it\n' +
       '🔬 /checkdisease → send a photo of a sick plant to detect diseases\n' +
-      '❓ Ask any plant question → care, uses, local names, best practices\n\n' +
-      'Tips for the best results:\n' +
+      '🌾 Agronomy → crop production, irrigation, fertilisation, pest & weed control, crop rotation\n' +
+      '🍅 Horticulture → fruit, vegetable & ornamental crops, pruning, grafting, post-harvest tips\n' +
+      '🪱 Soil science → soil types, pH, nutrients, composting, erosion control, land preparation\n' +
+      '❓ Ask any question → just type it and I will answer\n\n' +
+      'Tips for the best photo results:\n' +
       '• Take a clear, close-up photo of one leaf, flower, fruit, or the affected area\n' +
       '• Shoot in good daylight — avoid shadows\n' +
       '• Keep the photo steady and in focus\n\n' +
-      'I am built for Nigerian farmers and gardeners, so feel free to ask about cassava, yam, maize, tomato, pepper, and any crop or plant around you!'
+      'I am built for Nigerian farmers, students, and gardeners — feel free to ask about cassava, yam, maize, tomato, soil health, or any agricultural topic!'
   )
 );
 
