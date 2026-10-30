@@ -3,7 +3,7 @@ const axios = require('axios');
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.6-27b';
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
-const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'thinkingmachines/inkling';
+const NVIDIA_MODEL = process.env.NVIDIA_MODEL || 'GPT-OSS-20B';
 
 const DESCRIPTION_SYSTEM_PROMPT = `You are a knowledgeable botanist writing short, friendly plant profiles for Flora Scan, a Telegram bot used in Nigeria.
 Given a plant's scientific name, common name, and family, write a concise description covering:
